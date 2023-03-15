@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Подключил стили -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" type="text/css" />
+
+    {% block title -%}
+        {% if title  %}
+            <title>Про Flask - {{ title }}</title>
+        {% else  %}
+            <title>Про Flask (no template info)</title>
+        {% endif %}
+    {% endblock %}    
+</head>
+<body>
+    {% block content -%}
+
+        {%- block mainmenu -%}
+            <ul class="mainmenu">
+                {% for m in menu -%}
+                    <!-- <li>{{ m }}</li> -->
+                    <li> <a href="{{m.url}}">{{ m.name }}</a></li>
+                {% endfor -%}
+            </ul>
+        {% endblock mainmenu -%}
+
+        <div class="clear"></div>
+        <div class="content">
+            {% if title -%}
+                <h1>{{ title }}</h1>
+            {% else -%}
+                <h1>Про Flask (no template info)</h1>
+            {% endif -%}
+        </div>
+
+    {% endblock -%}
+
+    
+</body>
+</html>
