@@ -1,0 +1,850 @@
+uai_lesson_17_Sqlite
+
+$ mkdir flask_praktice
+$ cd flask_praktice/
+$ python3 -m venv venv
+$ source venv/bin/activate
+
+$ sudo apt update
+$ sudo apt upgrade -y 
+$ sudo apt autoremove
+$ sudo apt autoclean 
+
+$ pip install -U pip setuptools Flask
+
+$ touch app.py (рекомендовано всегда назыать app.py)
+$ code .
+
+
+Тестовый запуск
+        from flask import Flask
+
+
+        app = Flask(__name__)
+
+        @app.route("/index")
+        @app.route("/")
+        def index():
+            return "inex"
+
+
+        @app.route("/about")
+        def about():
+            return "<h1> О сайте </h1>"
+
+
+        if __name__ == "__main__":
+            # запуск локального web-сервера
+            app.run(debug=True)
+
+
+---
+Добавляю шаблонизатор render_template, передаю параметры шаблонам, jinja, условие в html-шаблоне, наследование шаблона-base.html, {{ super() }}-отображает, что былонаписано в базовом шаблоне
+
+create templates
+in templates create index.html (автозаполнение html [shift+!]):
+
+        {% extends "base.html" %}
+
+        {% block content %}
+            {{ super() }}
+            <p>Содержимое главной страницы</p>
+        {% endblock %}
+
+
+
+in templates create about.html (автозаполнение html [shift+!]):
+
+        {% extends "base.html" %}
+
+        {% block content %}
+            {{ super() }}
+            <p>Содержимое страницы " О сайте"</p>
+        {% endblock %}
+
+
+
+in templates create base.html:
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="X-UA-Compatible" content="IE=edge">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+            {% block title -%}
+                {% if title  %}
+                    <title>Про Flask - {{ title }}</title>
+                {% else  %}
+                    <title>Про Flask (no template info)</title>
+                {% endif %}
+            {% endblock %}    
+        </head>
+        <body>
+            {% block content -%}
+
+                {%- block mainmenu -%}
+                    <ul>
+                        {% for m in menu -%}
+                            <li>{{ m }}</li>
+                        {% endfor -%}
+                    </ul>
+                {% endblock mainmenu -%}
+
+                {% if title -%}
+                    <h1>{{ title }}</h1>
+                {% else -%}
+                    <h1>Про Flask (no template info)</h1>
+                {% endif -%}
+
+            {% endblock -%}
+            
+        </body>
+        </html>
+
+
+app.py:
+        from flask import Flask, render_template
+
+
+        app = Flask(__name__)
+
+        menu = ["Установка", "Первое приложение", "Обратная связь", ]
+
+        @app.route("/index")
+        @app.route("/")
+        def index():
+            return render_template("index.html", menu=menu)
+
+
+        @app.route("/about")
+        def about():
+            return render_template("about.html", title="О сайте", menu=menu)
+
+
+        if __name__ == "__main__":
+            # запуск локального web-сервера
+            app.run(debug=True)
+
+
+
+Зачем "-"?
+
+
+---
+Динамические url-пути, url_for:
+        from flask import Flask, render_template, url_for
+
+
+        app = Flask(__name__)
+
+        menu = ["Установка", "Первое приложение", "Обратная связь", ]
+
+        @app.route("/index")
+        @app.route("/")
+        def index():
+            # Функция url_for, работает только в контексте запроса. Вывод в консоль url. Если декораторов много, выведется ближайший (конкретно здесь '/')
+            print(url_for("index"))
+            return render_template("index.html", menu=menu)
+
+
+        @app.route("/about")
+        def about():
+            print(url_for("/about"))
+            return render_template("about.html", title="О сайте", menu=menu)
+
+        # Динамические url-адрес. Принимает username (/profile/Artem)
+        @app.route("/profile/<username>")
+        def profile(username):
+            print(url_for("profile", username="username"))
+            return f"Пользователь: {username}"
+
+
+        # Динамические url-адрес. Конвертер "path". Принимает ВСЕ посте username path (/profile2/Artem/123)
+        @app.route("/profile2/<path:username>")
+        def profile2(username):    
+            return f"Пользователь: {username}<hr> int - только цифры <br> float - можно цифры с плавающей запятой <br> path - можно использовать любые допустимые символы URL плюс символ '/'. "
+
+
+        # Динамические url-адрес. Принимает int (/profile3/123)
+        @app.route("/profile3/<int:username>")
+        def profile3(username):    
+            return f"Пользователь: {username}"
+
+
+        # Динамические url-адрес. Принимает ДВЕ переменных (http://127.0.0.1:5000/profile4/123/Art)
+        @app.route("/profile4/<int:username>/<path>")
+        def profile4(username, path):    
+            return f"Пользователь: {username}, {path}"
+
+
+        if __name__ == "__main__":
+            # запуск локального web-сервера
+            app.run(debug=True)
+
+
+
+---
+Подключение внешних файлов к страницам html-документа, передача данных от формы к обработчику, подключение ссылок
+
+        templates
+        static
+         |
+         |- css
+             |
+             |-style.css
+             
+             
+in static/css/style.css:
+
+        html, body { 
+	        font-family: 'Arial';
+	        margin: 0;
+	        padding: 0;
+	        height: 100%;
+	        width: 100%;
+        }
+
+        a {
+	        color: #0059b2;
+	        text-decoration: none;
+        }
+        a:hover {
+	        color: #CC0000;
+	        text-decoration: underline;
+        }
+
+        .clear {clear: both;}
+
+        ul.mainmenu {
+	        list-style: none;
+	        background: #3F4137;
+	        height: 60px;
+	        margin: 0;
+	        padding: 0;
+	        color: #fdc073;
+	        font-size: 20px;
+	        overflow: hidden;
+        }
+        ul.mainmenu li {
+	        float: left;
+	        margin: 18px 40px 0 50px;
+        }
+        ul.mainmenu li.last {float: right;}
+
+        ul.mainmenu li a {
+	        color: #fdc073;
+	        text-decoration: none;
+        }
+        ul.mainmenu li a:hover {
+	        color: #FDA83D;
+        }
+
+        div.content {
+	        margin: 10px;
+        }
+
+        .form-contact label {
+	        display: inline-block; 
+	        min-width: 80px;
+        }
+        .form-contact p {margin: 10px 0 10px 0;}
+        .form-contact input[type=submit], textarea {
+	        font-size: 16px;
+        }
+
+        .form-contact .invalid {
+	        background: #FF9898;
+        }
+        .form-contact .invalid-feedback {
+	        color: #CC0000;
+        }
+
+        .flash {padding: 10px;}
+        .flash.success {
+	        border: 1px solid #21DB56;
+	        background: #AEFFC5;
+        }
+        .flash.error {
+	        border: 1px solid #FF4343;
+	        background: #FF9C9C;
+        }
+
+        ul.list-posts {
+	        list-style: none;
+	        margin: 0;
+	        padding: 0;
+	        max-width: 600px;
+        }
+        ul.list-posts li {
+	        margin: 20px 0 0 0;
+	        border: 1px solid #eee;
+        }
+        ul.list-posts .title {
+	        margin: 0;
+	        padding: 5px;
+	        background: #eee;
+        }
+        ul.list-posts .annonce {
+	        margin: 0;
+	        padding: 10px 5px 10px 5px;
+        }
+
+        .profile-ava {
+	        width: 130px;
+	        text-align: center;
+	        overflow: hidden; 
+	        background: #eee;
+	        padding: 10px;
+        }
+        .profile-ava img {max-width: 150px; height: auto;}
+
+        .profile-load {
+	        margin-top: 10px;
+	        overflow: hidden;
+	        max-width: 150px;
+        }
+        .profile-load input[type=submit], input[type=file] {
+	        width: 100%;
+	        font-size: 18px;
+        }
+        .profile-load p {
+	        padding: 0;
+	        margin: 5px 0 0 0;
+        }
+
+        .profile-panel {padding: 0 0 0 10px;}
+        ul.profile-info {
+	        list-style: none;
+	        margin: 10px 0 0 0;
+	        padding: 0;
+	        color: #7E652F;
+        }
+        ul.profile-info li {margin-top: 10px;}
+
+in templates/base.html:
+
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="X-UA-Compatible" content="IE=edge">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+            <!-- Подключил стили -->
+            <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" type="text/css" />
+
+            {% block title -%}
+                {% if title  %}
+                    <title>Про Flask - {{ title }}</title>
+                {% else  %}
+                    <title>Про Flask (no template info)</title>
+                {% endif %}
+            {% endblock %}    
+        </head>
+        <body>
+            {% block content -%}
+
+                {%- block mainmenu -%}
+                    <ul class="mainmenu">
+                        {% for m in menu -%}
+                            <!-- <li>{{ m }}</li> -->
+                            <li> <a href="{{m.url}}">{{ m.name }}</a></li>
+                        {% endfor -%}
+                    </ul>
+                {% endblock mainmenu -%}
+
+                <div class="clear"></div>
+                <div class="content">
+                    {% if title -%}
+                        <h1>{{ title }}</h1>
+                    {% else -%}
+                        <h1>Про Flask (no template info)</h1>
+                    {% endif -%}
+                </div>
+
+            {% endblock -%}
+
+            
+        </body>
+        </html>
+
+in app.py:
+
+        from flask import Flask, render_template, url_for, request
+
+
+        app = Flask(__name__)
+
+        # menu = ["Установка", "Первое приложение", "Обратная связь", ]
+
+        menu = [
+            {"name": "Установка", "url": "install-flask"},
+            {"name": "Первое приложение", "url": "first-app"},
+            {"name": "Обратная связь", "url": "contact"}
+            ]
+
+
+        @app.route("/index")
+        @app.route("/")
+        def index():
+            # Функция url_for, работает только в контексте запроса. Вывод в консоль url. Если декораторов много, выведется ближайший (конкретно здесь '/')
+            print(url_for("index"))
+            return render_template("index.html", menu=menu)
+
+
+        @app.route("/about")
+        def about():
+            print(url_for("/about"))
+            return render_template("about.html", title="О сайте", menu=menu)
+
+
+        # Форма обратная связь
+        @app.route("/contact", methods=["POST", "GET"])
+        def contact():
+            if request.method == "POST":
+
+                # В терминал распечатываю данные из формы
+                print(request.form)
+                print(request.form["username"])
+                print(request.form["email"])
+                print(request.form["message"])
+            
+            return render_template("contact.html", title="Обратная связь", menu=menu)
+
+
+
+
+        # Динамические url-адрес. Принимает username (/profile/Artem)
+        @app.route("/profile/<username>")
+        def profile(username):
+            print(url_for("profile", username="username"))
+            return f"Пользователь: {username}"
+
+
+        # Динамические url-адрес. Конвертер "path". Принимает ВСЕ посте username path (/profile2/Artem/123)
+        @app.route("/profile2/<path:username>")
+        def profile2(username):    
+            return f"Пользователь: {username}<hr> int - только цифры <br> float - можно цифры с плавающей запятой <br> path - можно использовать любые допустимые символы URL плюс символ '/'. "
+
+
+        # Динамические url-адрес. Принимает int (/profile3/123)
+        @app.route("/profile3/<int:username>")
+        def profile3(username):    
+            return f"Пользователь: {username}"
+
+
+        # Динамические url-адрес. Принимает ДВЕ переменных (http://127.0.0.1:5000/profile4/123/Art)
+        @app.route("/profile4/<int:username>/<path>")
+        def profile4(username, path):    
+            return f"Пользователь: {username}, {path}"
+
+
+        if __name__ == "__main__":
+            # запуск локального web-сервера
+            app.run(debug=True)
+
+
+
+in templates create contact.html:
+
+        {% extends "base.html" %}
+
+        {% block content %}
+            {{ super() }}
+
+            <form action="/contact" method="post" class="fofm-contact">
+                <p><label>Имя: </label> <input type="text" name="username" value="" requied> </p>
+                <p><label>Email: </label> <input type="text" name="email" value="" requied> </p>
+                <p><label>Сообщение: </label></p>
+                <p><textarea name="message" cols="40" rows="7"></textarea></p>
+                <p><input type="submit" value="Отправить"></p>
+            </form>
+            
+        {% endblock %}
+
+
+
+---
+Отправка мгновенных сообщений Функция get_flashed_messages(True)
+
+in app.py:
+
+        from flask import Flask, render_template, url_for, request, flash
+
+
+        app = Flask(__name__)
+
+        # секретный ключ необходим для работы ссесии (здесь используется для работы с мгновенными сообщениями)
+        app.config["SECRET_KEY"] = "asdf;lkjasdf;lkj"
+
+        # menu = ["Установка", "Первое приложение", "Обратная связь", ]
+
+        menu = [
+            {"name": "Установка", "url": "install-flask"},
+            {"name": "Первое приложение", "url": "first-app"},
+            {"name": "Обратная связь", "url": "contact"}
+            ]
+
+
+        @app.route("/index")
+        @app.route("/")
+        def index():
+            # Функция url_for, работает только в контексте запроса. Вывод в консоль url. Если декораторов много, выведется ближайший (конкретно здесь '/')
+            print(url_for("index"))
+            return render_template("index.html", menu=menu)
+
+
+        @app.route("/about")
+        def about():
+            print(url_for("/about"))
+            return render_template("about.html", title="О сайте", menu=menu)
+
+
+        # Форма обратная связь, отправка мгновенного сообщения
+        @app.route("/contact", methods=["POST", "GET"])
+        def contact():
+            if request.method == "POST":
+
+                # Проверка данных из формы, отправка сообщения
+                if len(request.form["username"]) > 2:
+                    flash("Сообщение отправлено", category="success")
+                else:
+                    flash("Ошибка отправки сообщения", category="error")
+
+
+                # В терминал распечатываю данные из формы
+                print(request.form)
+                print(request.form["username"])
+                print(request.form["email"])
+                print(request.form["message"])
+            
+            return render_template("contact.html", title="Обратная связь", menu=menu)
+
+
+
+
+        # Динамические url-адрес. Принимает username (/profile/Artem)
+        @app.route("/profile/<username>")
+        def profile(username):
+            print(url_for("profile", username="username"))
+            return f"Пользователь: {username}"
+
+
+        # Динамические url-адрес. Конвертер "path". Принимает ВСЕ посте username path (/profile2/Artem/123)
+        @app.route("/profile2/<path:username>")
+        def profile2(username):    
+            return f"Пользователь: {username}<hr> int - только цифры <br> float - можно цифры с плавающей запятой <br> path - можно использовать любые допустимые символы URL плюс символ '/'. "
+
+
+        # Динамические url-адрес. Принимает int (/profile3/123)
+        @app.route("/profile3/<int:username>")
+        def profile3(username):    
+            return f"Пользователь: {username}"
+
+
+        # Динамические url-адрес. Принимает ДВЕ переменных (http://127.0.0.1:5000/profile4/123/Art)
+        @app.route("/profile4/<int:username>/<path>")
+        def profile4(username, path):    
+            return f"Пользователь: {username}, {path}"
+
+
+
+        if __name__ == "__main__":
+            # запуск локального web-сервера
+            app.run(debug=True)
+
+
+
+in contact.html:
+
+        {% extends "base.html" %}
+
+        {% block content %}
+            {{ super() }}
+
+            <!-- Отправка мгновенных сообщений. Функция get_flashed_messages(True) True-что бы фу-я возвращала сообщения в формате cat, msg -->
+            {%  for cat, msg in get_flashed_messages(True) %}
+                <div class="flash {{cat}}">{{msg}}</div>
+            {% endfor %}
+
+            <form action="/contact" method="post" class="fofm-contact">
+                <p><label>Имя: </label> <input type="text" name="username" value="" requied> </p>
+                <p><label>Email: </label> <input type="text" name="email" value="" requied> </p>
+                <p><label>Сообщение: </label></p>
+                <p><textarea name="message" cols="40" rows="7"></textarea></p>
+                <p><input type="submit" value="Отправить"></p>
+            </form>
+            
+        {% endblock %}
+
+in style.css:
+
+        html, body { 
+	        font-family: 'Arial';
+	        margin: 0;
+	        padding: 0;
+	        height: 100%;
+	        width: 100%;
+        }
+
+        a {
+	        color: #0059b2;
+	        text-decoration: none;
+        }
+        a:hover {
+	        color: #CC0000;
+	        text-decoration: underline;
+        }
+
+        .clear {clear: both;}
+
+        ul.mainmenu {
+	        list-style: none;
+	        background: #3F4137;
+	        height: 60px;
+	        margin: 0;
+	        padding: 0;
+	        color: #fdc073;
+	        font-size: 20px;
+	        overflow: hidden;
+        }
+        ul.mainmenu li {
+	        float: left;
+	        margin: 18px 40px 0 50px;
+        }
+        ul.mainmenu li.last {float: right;}
+
+        ul.mainmenu li a {
+	        color: #fdc073;
+	        text-decoration: none;
+        }
+        ul.mainmenu li a:hover {
+	        color: #FDA83D;
+        }
+
+        div.content {
+	        margin: 10px;
+        }
+
+        .form-contact label {
+	        display: inline-block; 
+	        min-width: 80px;
+        }
+        .form-contact p {margin: 10px 0 10px 0;}
+        .form-contact input[type=submit], textarea {
+	        font-size: 16px;
+        }
+
+        .form-contact .invalid {
+	        background: #FF9898;
+        }
+        .form-contact .invalid-feedback {
+	        color: #CC0000;
+        }
+
+        /* Мгновенные сообщения */
+        .flash {padding: 10px;}
+        .flash.success {
+	        border: 1px solid #21DB56;
+	        background: #AEFFC5;
+        }
+        .flash.error {
+	        border: 1px solid #FF4343;
+	        background: #FF9C9C;
+        }
+
+
+
+---
+-Отлавливание ошибок сервера errorhandler (Если пользователь ввел адрес несуществующей страницы выведу страницу title="Страница не найдена" и ссылку на Главную стр и сервер возвращает не 404, а 200)
+
+-Перенаправление запроса (
+пользователь в браузере логинится-если успешно, то он перенаправляется на новую страницу
+пользователь был залогинен и заходит снова, то второй раз, страницу с формой не нужно отображать, делаю сразу переадресацию в профаил)
+
+abort (прерывание запроса)
+
+
+in templates create page404.html:
+
+        {% extends "base.html" %}
+
+        {% block content %}
+            {{ super() }}
+            <p>Страница не найдена, вернуться на <a href="{{url_for("index")}}">главную</a></p>      
+        {% endblock %}
+               
+               
+in app.py:
+
+        from flask import Flask, render_template, url_for, request, flash, redirect, session, abort
+
+
+        app = Flask(__name__)
+
+        # секретный ключ необходим для работы ссесии (здесь используется для работы с мгновенными сообщениями)
+        app.config["SECRET_KEY"] = "asdf;lkjasdf;lkj"
+
+        # menu = ["Установка", "Первое приложение", "Обратная связь", ]
+
+        menu = [
+            {"name": "Установка", "url": "install-flask"},
+            {"name": "Первое приложение", "url": "first-app"},
+            {"name": "Обратная связь", "url": "contact"}
+            ]
+
+
+        @app.route("/index")
+        @app.route("/")
+        def index():
+            # Функция url_for, работает только в контексте запроса. Вывод в консоль url. Если декораторов много, выведется ближайший (конкретно здесь '/')
+            print(url_for("index"))
+            return render_template("index.html", menu=menu)
+
+
+        @app.route("/about")
+        def about():
+            print(url_for("/about"))
+            return render_template("about.html", title="О сайте", menu=menu)
+
+
+        # Форма обратная связь, отправка мгновенного сообщения
+        @app.route("/contact", methods=["POST", "GET"])
+        def contact():
+            if request.method == "POST":
+
+                # Проверка данных из формы, отправка сообщения
+                if len(request.form["username"]) > 2:
+                    flash("Сообщение отправлено", category="success")
+                else:
+                    flash("Ошибка отправки сообщения", category="error")
+
+
+                # В терминал распечатываю данные из формы
+                print(request.form)
+                print(request.form["username"])
+                print(request.form["email"])
+                print(request.form["message"])
+            
+            return render_template("contact.html", title="Обратная связь", menu=menu)
+
+
+        # Перенаправление запроса (пользователь в браузере логинится-если успешно, 
+        # то он перенаправляется на новую страницу 
+        # или пользователь был залогинен и заходит снова, то второй раз, 
+        # страницу с формой не нужно отображать, делаю сразу переадресацию в профаил)
+        @app.route("/login", methods=["POST", "GET"])
+        def login():
+            # Если св-во "userLogged" существует в сесии, то происходит переадресация на соответствующий профаил, с тем username, который находится в ссесии
+            if "userLogged" in session:
+                return redirect(url_for("profile", username=session["userLogged"]))
+            
+            # А иначе, берутся данные из формы, если они соответ-ют ["username"] == "admin" и паролю == "123", 
+            # то сохраняются данные в ссесии и делается переадресация
+            elif request.method == 'POST' and request.form["username"] == "admin" and request.form["psw"] == "123":
+                session["userLogged"] = request.form["username"]
+                return redirect(url_for("profile", username=session["userLogged"]))
+            
+            # Если все выше не проходит, отображаю данные формы
+            return render_template("login.html", title="Авторизация", menu=menu)
+
+        # Профайл пользователя (если он залогинен) или вывод 401
+        @app.route("/profile/<username>")
+        def profile(username):
+
+            # Проверка. Если пользователь самостоятельно набират како то путь (чужой профаил), то ему нельзя давать доступ к этому профайлу
+            # Если пользователь не залогинился или св-во в ссесии не соответствует username, возвращаю ошибку сервера
+            if "userLogged" not in session or session["userLogged"] != username:
+                abort(401)
+
+            return f"Профиль пользователя: {username}"
+
+
+        # Обработка ошибок (неправильно введенный адрес) 
+        @app.errorhandler(404)
+        def pageNotFound(error):
+            return render_template("page404.html", title="Страница не найдена", menu=menu)
+
+            # # Если все таки требуется возвращать 404
+            # return render_template("page404.html", title="Страница не найдена", menu=menu), 404
+
+
+
+
+
+        # Динамические url-адрес. Принимает username (/profile/Artem)
+        @app.route("/profile1/<username>")
+        def profile1(username):
+            print(url_for("profile", username="username"))
+            return f"Пользователь: {username}"
+
+
+        # Динамические url-адрес. Конвертер "path". Принимает ВСЕ посте username path (/profile2/Artem/123)
+        @app.route("/profile2/<path:username>")
+        def profile2(username):    
+            return f"Пользователь: {username}<hr> int - только цифры <br> float - можно цифры с плавающей запятой <br> path - можно использовать любые допустимые символы URL плюс символ '/'. "
+
+
+        # Динамические url-адрес. Принимает int (/profile3/123)
+        @app.route("/profile3/<int:username>")
+        def profile3(username):    
+            return f"Пользователь: {username}"
+
+
+        # Динамические url-адрес. Принимает ДВЕ переменных (http://127.0.0.1:5000/profile4/123/Art)
+        @app.route("/profile4/<int:username>/<path>")
+        def profile4(username, path):    
+            return f"Пользователь: {username}, {path}"
+
+
+        if __name__ == "__main__":
+            # запуск локального web-сервера
+            app.run(debug=True)
+
+
+in templates create login.html:
+
+        {% extends "base.html" %}
+
+        {% block content %}
+            {{ super() }}
+            <form action="/login" method="post" class="form-contact">
+                <p> <label>Имя: </label> <input type="text" name="username" requied></p>
+                <p> <label>Пароль: </label> <input type="password" name="psw" requied></p>
+                <p> <input type="submit" value="Войти"> </p>
+            </form>
+        {% endblock %}
+
+
+
+
+
+
+
+
+
+
+
+
+************************
+Для описания
+jinja, super, Динамические url-пути, uro_for
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+https://www.youtube.com/@selfedu_rus
+https://github.com/selfedu-rus/flasksite-17/blob/master/static/css/styles.css
+

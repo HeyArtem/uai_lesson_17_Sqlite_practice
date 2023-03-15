@@ -1,4 +1,4 @@
-from flask import Flask, render_template, url_for, request, flash
+from flask import Flask, render_template, url_for, request, flash, redirect, session, abort
 
 
 app = Flask(__name__)
@@ -50,11 +50,52 @@ def contact():
     return render_template("contact.html", title="Обратная связь", menu=menu)
 
 
+# Перенаправление запроса (пользователь в браузере логинится-если успешно, 
+# то он перенаправляется на новую страницу 
+# или пользователь был залогинен и заходит снова, то второй раз, 
+# страницу с формой не нужно отображать, делаю сразу переадресацию в профаил)
+@app.route("/login", methods=["POST", "GET"])
+def login():
+    # Если св-во "userLogged" существует в сесии, то происходит переадресация на соответствующий профаил, с тем username, который находится в ссесии
+    if "userLogged" in session:
+        return redirect(url_for("profile", username=session["userLogged"]))
+    
+    # А иначе, берутся данные из формы, если они соответ-ют ["username"] == "admin" и паролю == "123", 
+    # то сохраняются данные в ссесии и делается переадресация
+    elif request.method == 'POST' and request.form["username"] == "admin" and request.form["psw"] == "123":
+        session["userLogged"] = request.form["username"]
+        return redirect(url_for("profile", username=session["userLogged"]))
+    
+    # Если все выше не проходит, отображаю данные формы
+    return render_template("login.html", title="Авторизация", menu=menu)
+
+# Профайл пользователя (если он залогинен) или вывод 401
+@app.route("/profile/<username>")
+def profile(username):
+
+    # Проверка. Если пользователь самостоятельно набират како то путь (чужой профаил), то ему нельзя давать доступ к этому профайлу
+    # Если пользователь не залогинился или св-во в ссесии не соответствует username, возвращаю ошибку сервера
+    if "userLogged" not in session or session["userLogged"] != username:
+        abort(401)
+
+    return f"Профиль пользователя: {username}"
+
+
+# Обработка ошибок (неправильно введенный адрес) 
+@app.errorhandler(404)
+def pageNotFound(error):
+    return render_template("page404.html", title="Страница не найдена", menu=menu)
+
+    # # Если все таки требуется возвращать 404
+    # return render_template("page404.html", title="Страница не найдена", menu=menu), 404
+
+
+
 
 
 # Динамические url-адрес. Принимает username (/profile/Artem)
-@app.route("/profile/<username>")
-def profile(username):
+@app.route("/profile1/<username>")
+def profile1(username):
     print(url_for("profile", username="username"))
     return f"Пользователь: {username}"
 
@@ -75,15 +116,6 @@ def profile3(username):
 @app.route("/profile4/<int:username>/<path>")
 def profile4(username, path):    
     return f"Пользователь: {username}, {path}"
-
-
-
-
-
-
-
-
-
 
 
 if __name__ == "__main__":
